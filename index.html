@@ -204,11 +204,19 @@ function st(t){
 }
 
 // ---- LOAD DỮ LIỆU ĐƠN HÀNG ----
-async function loadDonHang(){
+function loadDonHang(){
   bar('bar-load');
-  try {
-    const res = await fetch(SCRIPT_URL + '?action=getDonHang');
-    const json = await res.json();
+  const cbName = 'nbhCb_' + Date.now();
+  const script = document.createElement('script');
+  const timer = setTimeout(()=>{
+    bar('bar-err');
+    delete window[cbName];
+    document.body.removeChild(script);
+  }, 10000);
+  window[cbName] = function(json){
+    clearTimeout(timer);
+    delete window[cbName];
+    try{ document.body.removeChild(script); }catch(e){}
     if(json.status === 'ok' && json.data){
       donHangData = json.data;
       buildPoDropdown();
@@ -217,9 +225,10 @@ async function loadDonHang(){
     } else {
       bar('bar-err');
     }
-  } catch(e){
-    bar('bar-err');
-  }
+  };
+  script.src = SCRIPT_URL + '?action=getDonHang&callback=' + cbName;
+  script.onerror = ()=>{ clearTimeout(timer); bar('bar-err'); };
+  document.body.appendChild(script);
 }
 
 function buildPoDropdown(){
